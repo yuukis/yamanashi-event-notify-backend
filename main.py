@@ -8,8 +8,13 @@ import json
 from datetime import datetime, timezone
 from flask_cors import cross_origin
 import os
+import logging
 from dotenv import load_dotenv
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s"
+)
 
 load_dotenv()
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY")
@@ -60,7 +65,7 @@ def subscribe():
     try:
         db.session.add(subscription)
         db.session.commit()
-        print('Subscription added successfully')
+        logging.info('Subscription added successfully')
         # Send a test push notification
         payload = json.dumps({
             "title": "山梨の新着イベント",
@@ -69,7 +74,9 @@ def subscribe():
         })
         push_data(subscription, payload)
         return jsonify({}), 201
+
     except Exception as e:
+        logging.critical(f"Error adding subscription: {str(e)}")
         if 'UNIQUE constraint failed' in str(e):
             return jsonify({}), 200
         return jsonify({'error': str(e)}), 500
@@ -85,6 +92,7 @@ def unsubscribe():
     if subscription:
         db.session.delete(subscription)
         db.session.commit()
+        logging.info('Subscription deleted successfully')
     return jsonify({}), 200
 
 
@@ -103,9 +111,10 @@ def push_data(subscription, payload):
             vapid_private_key=VAPID_PRIVATE_KEY,
             vapid_claims=VAPID_CLAIMS
         )
-        print('Push notification sent successfully')
+        logging.info(f"Push notification sent to {subscription.endpoint}")
+
     except WebPushException as ex:
-        print(f"WebPush error: {repr(ex)}")
+        logging.error(f"Failed to send push notification: {str(ex)}")
         if ex.response and ex.response.status_code in [404, 410]:
             db.session.delete(subscription)
             db.session.commit()
@@ -130,9 +139,8 @@ def check_new_events():
     new_events = list(filter(is_new_event, events))
     last_event_ids = [e.event_id for e in events]
 
-    print(new_events)
-
     for event in new_events:
+        logging.info(f"New event found: {event.title} ({event.event_url})")
         payload = json.dumps({
             "title": "山梨の新着イベント",
             "body": event.title,
