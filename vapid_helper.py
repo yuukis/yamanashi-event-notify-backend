@@ -3,9 +3,6 @@ import ecdsa
 
 
 def generate_vapid_keypair():
-    """
-    Generate a new set of encoded key-pair for VAPID
-    """
     pk = ecdsa.SigningKey.generate(curve=ecdsa.NIST256p)
     vk = pk.get_verifying_key()
 
