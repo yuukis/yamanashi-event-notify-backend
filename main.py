@@ -80,37 +80,27 @@ def unsubscribe():
     return jsonify({}), 200
 
 
-@app.route('/send', methods=['GET'])
-def send_notification():
-    notification_payload = json.dumps({
-        "title": "山梨の新着イベント",
-        "body": "新着イベントがあります",
-        "url": "https://event.yamanashi.dev"
-    })
-
-    subscriptions = Subscription.query.all()
-    for subscription in subscriptions:
-        sub_info = {
-            "endpoint": subscription.endpoint,
-            "keys": {
-                "p256dh": subscription.p256dh,
-                "auth": subscription.auth
-            }
+def push_data(subscription, payload):
+    sub_info = {
+        "endpoint": subscription.endpoint,
+        "keys": {
+            "p256dh": subscription.p256dh,
+            "auth": subscription.auth
         }
-        try:
-            webpush(
-                subscription_info=sub_info,
-                data=notification_payload,
-                vapid_private_key=VAPID_PRIVATE_KEY,
-                vapid_claims=VAPID_CLAIMS
-            )
-            print('success')
-        except WebPushException as ex:
-            print(f"WebPush error: {repr(ex)}")
-            if ex.response and ex.response.status_code in [404, 410]:
-                db.session.delete(subscription)
-                db.session.commit()
-    return jsonify({}), 200
+    }
+    try:
+        webpush(
+            subscription_info=sub_info,
+            data=payload,
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims=VAPID_CLAIMS
+        )
+        print('Push notification sent successfully')
+    except WebPushException as ex:
+        print(f"WebPush error: {repr(ex)}")
+        if ex.response and ex.response.status_code in [404, 410]:
+            db.session.delete(subscription)
+            db.session.commit()
 
 
 def is_new_event(e):
@@ -134,35 +124,16 @@ def check_new_events():
 
     print(new_events)
 
-    # for event in new_events:
-    #     notification_payload = json.dumps({
-    #         "title": "山梨の新着イベント",
-    #         "body": event.title,
-    #         "url": event.event_url
-    #     })
+    for event in new_events:
+        payload = json.dumps({
+            "title": "山梨の新着イベント",
+            "body": event.title,
+            "url": event.event_url
+        })
 
-    #     subscriptions = Subscription.query.all()
-    #     for subscription in subscriptions:
-    #         sub_info = {
-    #             "endpoint": subscription.endpoint,
-    #             "keys": {
-    #                 "p256dh": subscription.p256dh,
-    #                 "auth": subscription.auth
-    #             }
-    #         }
-    #         try:
-    #             webpush(
-    #                 subscription_info=sub_info,
-    #                 data=notification_payload,
-    #                 vapid_private_key=VAPID_PRIVATE_KEY,
-    #                 vapid_claims=VAPID_CLAIMS
-    #             )
-    #         except WebPushException as ex:
-    #             print(f"WebPush error: {repr(ex)}")
-    #             # 無効なPushSubscriptionを削除
-    #             if ex.response and ex.response.status_code in [404, 410]:
-    #                 db.session.delete(subscription)
-    #                 db.session.commit()
+        subscriptions = Subscription.query.all()
+        for subscription in subscriptions:
+            push_data(subscription, payload)
 
 
 scheduler = BackgroundScheduler()
