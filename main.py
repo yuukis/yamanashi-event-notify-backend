@@ -60,6 +60,14 @@ def subscribe():
     try:
         db.session.add(subscription)
         db.session.commit()
+        print('Subscription added successfully')
+        # Send a test push notification
+        payload = json.dumps({
+            "title": "山梨の新着イベント",
+            "body": "今後、新着イベントがあれば通知します",
+            "url": "https://hub.yamanashi.dev"
+        })
+        push_data(subscription, payload)
         return jsonify({}), 201
     except Exception as e:
         if 'UNIQUE constraint failed' in str(e):
