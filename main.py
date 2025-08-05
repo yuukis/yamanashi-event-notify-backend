@@ -139,17 +139,18 @@ def check_new_events():
     new_events = list(filter(is_new_event, events))
     last_event_ids = [e.event_id for e in events]
 
-    for event in new_events:
-        logging.info(f"New event found: {event.title} ({event.event_url})")
-        payload = json.dumps({
-            "title": "山梨の新着イベント",
-            "body": event.title,
-            "url": event.event_url
-        })
+    with app.app_context():
+        for event in new_events:
+            logging.info(f"New event found: {event.title} ({event.event_url})")
+            payload = json.dumps({
+                "title": "山梨の新着イベント",
+                "body": event.title,
+                "url": event.event_url
+            })
 
-        subscriptions = Subscription.query.all()
-        for subscription in subscriptions:
-            push_data(subscription, payload)
+            subscriptions = Subscription.query.all()
+            for subscription in subscriptions:
+                push_data(subscription, payload)
 
 
 scheduler = BackgroundScheduler()
