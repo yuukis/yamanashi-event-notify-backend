@@ -43,7 +43,7 @@ class Subscription(db.Model):
 with app.app_context():
     db.create_all()
 
-last_event_ids = None
+last_uids = None
 
 
 @app.route('/', methods=['GET'])
@@ -121,23 +121,23 @@ def push_data(subscription, payload):
 
 
 def is_new_event(e):
-    global last_event_ids
-    if last_event_ids is None:
+    global last_uids
+    if last_uids is None:
         return False
 
     started_at = datetime.strptime(e.started_at, '%Y-%m-%dT%H:%M:%S%z')
     now = datetime.now(timezone.utc)
-    return e.event_id not in last_event_ids and started_at > now
+    return e.uid not in last_uids and started_at > now
 
 
 def check_new_events():
-    global last_event_ids
+    global last_uids
     response = requests.get('https://api.event.yamanashi.dev/events')
     data = response.json()
     events = Event.from_json(data)
 
     new_events = list(filter(is_new_event, events))
-    last_event_ids = [e.event_id for e in events]
+    last_uids = [e.uid for e in events]
 
     with app.app_context():
         for event in new_events:
