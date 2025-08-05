@@ -23,7 +23,7 @@ VAPID_EMAIL = os.environ.get("VAPID_EMAIL")
 VAPID_CLAIMS = {
     "sub": f"mailto:{VAPID_EMAIL}"
 }
-CLOSS_ORIGIN = os.environ.get("CROSS_ORIGIN")
+CROSS_ORIGIN = os.environ.get("CROSS_ORIGIN")
 
 
 app = Flask(__name__)
@@ -52,7 +52,7 @@ def index():
 
 
 @app.route('/subscribe', methods=['POST', 'OPTIONS'])
-@cross_origin(origins=[CLOSS_ORIGIN], methods=['POST'],
+@cross_origin(origins=[CROSS_ORIGIN], methods=['POST'],
               supports_credentials=True)
 def subscribe():
     data = request.data.decode('utf-8')
@@ -83,7 +83,7 @@ def subscribe():
 
 
 @app.route('/unsubscribe', methods=['POST'])
-@cross_origin(origins=[CLOSS_ORIGIN], methods=['POST'],
+@cross_origin(origins=[CROSS_ORIGIN], methods=['POST'],
               supports_credentials=True)
 def unsubscribe():
     data = request.data.decode('utf-8')
