@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from pywebpush import webpush, WebPushException
+from urllib.parse import urlparse
 from apscheduler.schedulers.background import BackgroundScheduler
 from models import Event
 import requests
@@ -20,9 +21,6 @@ load_dotenv()
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY")
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY")
 VAPID_EMAIL = os.environ.get("VAPID_EMAIL")
-VAPID_CLAIMS = {
-    "sub": f"mailto:{VAPID_EMAIL}"
-}
 CROSS_ORIGIN = os.environ.get("CROSS_ORIGIN")
 
 
@@ -57,6 +55,7 @@ def index():
 def subscribe():
     data = request.data.decode('utf-8')
     data = json.loads(data)
+    logging.info(f"Received endpoint: {data['endpoint']}")
     subscription = Subscription(
         endpoint=data['endpoint'],
         p256dh=data['keys']['p256dh'],
@@ -104,12 +103,17 @@ def push_data(subscription, payload):
             "auth": subscription.auth
         }
     }
+    endpoint_origin = "{uri.scheme}://{uri.netloc}".format(uri=urlparse(subscription.endpoint))
+    vapid_claims = {
+        "sub": f"mailto:{VAPID_EMAIL}",
+        "aud": endpoint_origin
+    }
     try:
         webpush(
             subscription_info=sub_info,
             data=payload,
             vapid_private_key=VAPID_PRIVATE_KEY,
-            vapid_claims=VAPID_CLAIMS
+            vapid_claims=vapid_claims
         )
         logging.info(f"Push notification sent to {subscription.endpoint}")
 
