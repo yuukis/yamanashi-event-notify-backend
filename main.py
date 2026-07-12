@@ -136,7 +136,12 @@ def is_new_event(e):
 
 def check_new_events():
     global last_uids
-    response = requests.get('https://api.event.yamanashi.dev/events')
+    host = "https://api.event.yamanashi.dev"
+    path = "/events"
+    query = "?fields=uid,title,event_url,started_at"
+    url = f"{host}{path}{query}"
+
+    response = requests.get(url)
     data = response.json()
     events = Event.from_json(data)
 
